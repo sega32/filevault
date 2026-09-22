@@ -1,0 +1,89 @@
+{
+  "groups": [
+    {
+      "name": "app",
+      "type": "com.filevault.config.FileVaultProperties",
+      "sourceType": "com.filevault.config.FileVaultProperties"
+    },
+    {
+      "name": "app.chunk",
+      "type": "com.filevault.config.FileVaultProperties$Chunk",
+      "sourceType": "com.filevault.config.FileVaultProperties",
+      "sourceMethod": "chunk()"
+    },
+    {
+      "name": "app.encryption",
+      "type": "com.filevault.config.FileVaultProperties$Encryption",
+      "sourceType": "com.filevault.config.FileVaultProperties",
+      "sourceMethod": "encryption()"
+    },
+    {
+      "name": "app.security",
+      "type": "com.filevault.config.FileVaultProperties$Security",
+      "sourceType": "com.filevault.config.FileVaultProperties",
+      "sourceMethod": "security()"
+    },
+    {
+      "name": "app.storage",
+      "type": "com.filevault.config.FileVaultProperties$Storage",
+      "sourceType": "com.filevault.config.FileVaultProperties",
+      "sourceMethod": "storage()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "app.chunk.size",
+      "type": "java.lang.Integer",
+      "description": "chunk size in bytes; the compressed byte stream is split on this boundary",
+      "sourceType": "com.filevault.config.FileVaultProperties$Chunk",
+      "defaultValue": 4194304
+    },
+    {
+      "name": "app.encryption.enabled",
+      "type": "java.lang.Boolean",
+      "description": "whether chunks are encrypted before hitting disk",
+      "sourceType": "com.filevault.config.FileVaultProperties$Encryption",
+      "defaultValue": false
+    },
+    {
+      "name": "app.encryption.key",
+      "type": "java.lang.String",
+      "description": "base64-encoded 32-byte key; required when {@code enabled}",
+      "sourceType": "com.filevault.config.FileVaultProperties$Encryption"
+    },
+    {
+      "name": "app.security.api-keys",
+      "type": "java.util.List<java.lang.String>",
+      "description": "accepted keys",
+      "sourceType": "com.filevault.config.FileVaultProperties$Security"
+    },
+    {
+      "name": "app.security.cors-origins",
+      "type": "java.util.List<java.lang.String>",
+      "description": "allowed CORS origins ({@code *} is rejected when auth is enabled)",
+      "sourceType": "com.filevault.config.FileVaultProperties$Security"
+    },
+    {
+      "name": "app.security.enabled",
+      "type": "java.lang.Boolean",
+      "description": "whether the API-key filter is active",
+      "sourceType": "com.filevault.config.FileVaultProperties$Security",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.header",
+      "type": "java.lang.String",
+      "description": "header carrying the key",
+      "sourceType": "com.filevault.config.FileVaultProperties$Security",
+      "defaultValue": "X-API-Key"
+    },
+    {
+      "name": "app.storage.path",
+      "type": "java.lang.String",
+      "description": "root directory holding per-file chunk directories",
+      "sourceType": "com.filevault.config.FileVaultProperties$Storage",
+      "defaultValue": ".\/storage"
+    }
+  ],
+  "hints": []
+}
