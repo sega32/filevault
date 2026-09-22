@@ -1,0 +1,12 @@
+target/
+*/target/
+storage/
+filevault.db*
+*.log
+.git/
+.github/
+.idea/
+.vscode/
+.DS_Store
+docs/
+*.md

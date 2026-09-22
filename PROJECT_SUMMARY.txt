@@ -1,0 +1,134 @@
+================================================================================
+FILEVAULT — PROJECT SUMMARY
+Compressed, chunked, integrity-checked file storage
+================================================================================
+
+Full documentation:  README.md
+Quick start:         QUICK_START.md
+Build and deploy:    BUILD_AND_RUN.md
+
+--------------------------------------------------------------------------------
+WHAT IT IS
+--------------------------------------------------------------------------------
+
+A single-node file storage service. Uploads are gzip compressed, split into 4 MB
+chunks, optionally encrypted with AES-256-GCM, and written to disk with a SHA-256
+digest per chunk. Metadata lives in SQLite via Spring Data JPA. A shaded Java CLI
+drives the REST API.
+
+Two deliverables:
+
+  backend/target/filevault-backend-1.0.0.jar   Spring Boot service
+  cli/target/filevault-cli.jar                 command-line client
+
+--------------------------------------------------------------------------------
+TECHNOLOGY
+--------------------------------------------------------------------------------
+
+Backend    Java 21, Spring Boot 3.4.1, Spring Data JPA / Hibernate 6,
+           Spring Security, SQLite (WAL mode) via xerial sqlite-jdbc,
+           Micrometer + Prometheus, gzip and AES-256-GCM from the JDK
+
+CLI        Java 21, java.net.http (JDK HTTP client), Gson
+
+Build      Maven (wrapper included), Maven Shade for the CLI uber jar,
+           multi-stage Docker build, GitHub Actions CI
+
+--------------------------------------------------------------------------------
+ARCHITECTURE
+--------------------------------------------------------------------------------
+
+  controller/   REST endpoints, streaming responses
+  service/      FileService orchestrates: Compression, Chunking, Storage,
+                Encryption
+  repository/   Spring Data JPA
+  model/        FileRecord, Chunk (composite key: file_id + chunk_index)
+  security/     API-key filter, constant-time comparison
+  config/       typed @ConfigurationProperties, security configuration
+  exception/    domain exceptions → RFC 9457 problem responses
+  web/          request-id correlation filter
+
+Upload path:    digest → gzip → chunk → [encrypt] → hash → disk → commit metadata
+Download path:  read chunk → verify size + SHA-256 → decrypt → reassemble →
+                gunzip → stream to client
+
+Chunk I/O runs outside the database transaction: SQLite allows one writer, and
+holding a write transaction open for a multi-gigabyte upload would serialise the
+whole server behind a single client.
+
+--------------------------------------------------------------------------------
+VERIFIED BEHAVIOUR
+--------------------------------------------------------------------------------
+
+70 automated tests, plus a live end-to-end run against the packaged jars:
+
+  * 818 MB file round-tripped byte-identically with the server limited to
+    -Xmx192m and the client to -Xmx128m
+  * 400 MB of incompressible data across 101 encrypted chunks round-tripped
+    byte-identically, no OOM
+  * a single flipped byte in a stored chunk was detected and the transfer
+    aborted rather than serving damaged data
+  * API-key authentication rejected unauthenticated requests with HTTP 401
+  * chunks on disk confirmed to be ciphertext when encryption is enabled
+
+Memory use is bounded by chunk size, not file size, on both ends.
+
+--------------------------------------------------------------------------------
+SECURITY POSTURE
+--------------------------------------------------------------------------------
+
+Implemented:
+  + API-key authentication, constant-time comparison, stateless
+  + Secure-by-default startup — enabled auth without keys is a fatal error,
+    as is enabled encryption without a key
+  + Optional AES-256-GCM at rest, authenticated, fresh IV per chunk
+  + Path-traversal defence (UUID-only ids, resolved paths confined to the root)
+  + Uploaded filenames reduced to a bare basename, control characters stripped
+  + Explicit CORS allowlist; "*" rejected while auth is enabled
+  + Errors returned without internals or stack traces
+
+Deliberately out of scope (add before hostile exposure):
+  - TLS termination — run behind a reverse proxy
+  - Per-user identity and authorization; any valid key can read or delete anything
+  - Rate limiting and quotas
+  - Audit logging
+  - Key rotation
+  - Replication and backup automation
+
+--------------------------------------------------------------------------------
+KNOWN LIMIT, STATED PLAINLY
+--------------------------------------------------------------------------------
+
+Corruption is always detected and never served as valid data, but a damaged
+chunk after the first is caught mid-stream — after HTTP 200 has been committed.
+The server aborts the transfer, logs it at ERROR and increments the
+filevault.integrity.failures counter; the client compares bytes received against
+Content-Length and fails loudly. Closing this gap entirely would mean verifying
+every chunk before streaming, doubling read I/O. The trade was made in favour of
+single-pass streaming.
+
+--------------------------------------------------------------------------------
+OPERATIONS
+--------------------------------------------------------------------------------
+
+Health      /api/files/health (open), /api/actuator/health (detailed)
+Metrics     /api/actuator/prometheus
+            filevault.uploads, filevault.downloads,
+            filevault.integrity.failures, filevault.upload.duration
+Logs        every line carries a request id, echoed as X-Request-Id
+Alerting    any non-zero filevault.integrity.failures means damaged data
+Backup      storage/ and filevault.db must be backed up together
+
+--------------------------------------------------------------------------------
+SCALING BEYOND ONE NODE
+--------------------------------------------------------------------------------
+
+  1. Metadata to PostgreSQL — JPA is portable; the dialect and schema.sql are
+     the only coupling points
+  2. Chunks to object storage — StorageService is the only component that
+     touches the filesystem
+  3. Deduplication — chunk hashes are already content digests; a shared chunk
+     table with reference counts makes identical chunks free
+  4. Resumable uploads — chunk indices exist; the missing piece is a session
+
+================================================================================

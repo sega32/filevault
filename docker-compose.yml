@@ -1,0 +1,28 @@
+services:
+  filevault:
+    build: .
+    image: filevault-backend:1.0.0
+    container_name: filevault
+    ports:
+      - "8080:8080"
+    environment:
+      # Required: at least one API key, or the server refuses to start.
+      #   export FILEVAULT_API_KEY=$(openssl rand -hex 32)
+      APP_SECURITY_API_KEYS_0: ${FILEVAULT_API_KEY:?set FILEVAULT_API_KEY before starting}
+      # Optional: AES-256-GCM encryption of chunks at rest.
+      #   export FILEVAULT_ENCRYPTION_KEY=$(openssl rand -base64 32)
+      APP_ENCRYPTION_ENABLED: ${FILEVAULT_ENCRYPTION_ENABLED:-false}
+      APP_ENCRYPTION_KEY: ${FILEVAULT_ENCRYPTION_KEY:-}
+    volumes:
+      - filevault-data:/data
+    restart: unless-stopped
+    stop_grace_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      # Multipart uploads above the size threshold spool through the temp directory.
+      - /tmp:size=2g
+
+volumes:
+  filevault-data:
