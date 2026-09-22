@@ -1,0 +1,6 @@
+com\filevault\cli\CliException.class
+com\filevault\cli\FileMetadata.class
+com\filevault\cli\VaultHttpClient.class
+com\filevault\cli\VaultHttpClient$1.class
+com\filevault\cli\FileVaultCLI$Options.class
+com\filevault\cli\FileVaultCLI.class
