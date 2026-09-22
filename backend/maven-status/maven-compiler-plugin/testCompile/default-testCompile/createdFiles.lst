@@ -1,0 +1,7 @@
+com\filevault\integration\ApiKeySecurityTest.class
+com\filevault\service\ChunkingServiceTest.class
+com\filevault\service\CompressionServiceTest.class
+com\filevault\service\FilenameSanitisationTest.class
+com\filevault\service\EncryptionServiceTest.class
+com\filevault\integration\FileVaultIntegrationTest.class
+com\filevault\service\StorageServiceTest.class
